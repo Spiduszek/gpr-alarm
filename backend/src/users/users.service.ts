@@ -29,6 +29,14 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
+  async findAllActive(): Promise<User[]> {
+  return this.usersRepository.find({
+    where: {
+      active: true,
+    },
+  });
+}
+
   async findByLogin(login: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: {

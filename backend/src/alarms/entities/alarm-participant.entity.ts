@@ -1,0 +1,45 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+
+export enum AlarmParticipantStatus {
+  PENDING = 'PENDING',
+  GOING = 'GOING',
+  NOT_GOING = 'NOT_GOING',
+  NO_ANSWER = 'NO_ANSWER',
+}
+
+@Entity()
+export class AlarmParticipant {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column()
+  alarmId!: number;
+
+  @Column()
+  userId!: number;
+
+  @Column({
+    type: 'enum',
+    enum: AlarmParticipantStatus,
+    default: AlarmParticipantStatus.PENDING,
+  })
+  status!: AlarmParticipantStatus;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  answeredAt!: Date | null;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
+}
