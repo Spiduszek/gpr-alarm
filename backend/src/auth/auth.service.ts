@@ -229,4 +229,8 @@ export class AuthService {
     // createTokenPair usunie go i zapisze nowy.
     return this.createTokenPair(user);
   }
+
+  async logout(userId: number): Promise<void> {
+  await this.refreshTokensService.deleteAllForUser(userId);
+}
 }

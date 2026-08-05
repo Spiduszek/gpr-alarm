@@ -7,11 +7,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';  
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -34,12 +37,26 @@ export class AuthController {
   me(@Request() req: any) {
     return this.authService.me(req.user.id);
   }
+
   @Post('refresh')
-refresh(
-  @Body() dto: RefreshTokenDto,
-) {
-  return this.authService.refresh(
-    dto.refreshToken,
-  );
-}
+  refresh(
+    @Body() dto: RefreshTokenDto,
+  ) {
+    return this.authService.refresh(
+      dto.refreshToken,
+    );
+  }
+
+  @Post('logout')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  async logout(@Request() req: any) {
+    await this.authService.logout(
+      req.user.id,
+    );
+
+    return {
+      message: 'Wylogowano pomyślnie.',
+    };
+  }
 }
