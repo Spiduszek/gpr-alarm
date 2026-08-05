@@ -1,14 +1,21 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { AlarmsService } from './alarms.service';
-import { CreateAlarmDto } from './dto/create-alarm.dto';
-
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('Alarms')
-@ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @Controller('alarms')
 export class AlarmsController {
   constructor(
@@ -16,8 +23,10 @@ export class AlarmsController {
   ) {}
 
   @Post()
-  create(@Body() createAlarmDto: CreateAlarmDto) {
-    return this.alarmsService.create(createAlarmDto);
+  create(@Request() req: any) {
+    return this.alarmsService.create(
+      req.user.id,
+    );
   }
 
   @Get()

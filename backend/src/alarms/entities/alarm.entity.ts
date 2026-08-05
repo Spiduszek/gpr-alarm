@@ -5,14 +5,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-export enum AlarmPriority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-}
-
 export enum AlarmStatus {
-  DRAFT = 'DRAFT',
   RUNNING = 'RUNNING',
   FINISHED = 'FINISHED',
 }
@@ -22,32 +15,22 @@ export class Alarm {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ length: 100 })
-  title!: string;
-
-  @Column({
-    type: 'text',
-    nullable: true,
-  })
-  description!: string;
-
-  @Column({ length: 255 })
-  location!: string;
-
-  @Column({
-    type: 'enum',
-    enum: AlarmPriority,
-    default: AlarmPriority.MEDIUM,
-  })
-  priority!: AlarmPriority;
-
   @Column({
     type: 'enum',
     enum: AlarmStatus,
-    default: AlarmStatus.DRAFT,
+    default: AlarmStatus.RUNNING,
   })
   status!: AlarmStatus;
 
+  @Column()
+  createdByUserId!: number;
+
   @CreateDateColumn()
   createdAt!: Date;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  finishedAt!: Date | null;
 }

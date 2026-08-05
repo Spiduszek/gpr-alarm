@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { Alarm } from './entities/alarm.entity';
-import { CreateAlarmDto } from './dto/create-alarm.dto';
+import {
+  Alarm,
+  AlarmStatus,
+} from './entities/alarm.entity';
 
 @Injectable()
 export class AlarmsService {
@@ -12,12 +14,16 @@ export class AlarmsService {
     private readonly alarmRepository: Repository<Alarm>,
   ) {}
 
-  async create(createAlarmDto: CreateAlarmDto) {
-    const alarm = this.alarmRepository.create(createAlarmDto);
+  async create(createdByUserId: number): Promise<Alarm> {
+    const alarm = this.alarmRepository.create({
+      createdByUserId,
+      status: AlarmStatus.RUNNING,
+    });
+
     return this.alarmRepository.save(alarm);
   }
 
-  async findAll() {
+  async findAll(): Promise<Alarm[]> {
     return this.alarmRepository.find({
       order: {
         createdAt: 'DESC',
