@@ -64,4 +64,109 @@ export class AlarmsService {
       },
     });
   }
+  async updateParticipantStatus(
+  alarmId: number,
+  userId: number,
+  status: AlarmParticipantStatus,
+): Promise<AlarmParticipant> {
+  const participant =
+    await this.participantRepository.findOne({
+      where: {
+        alarmId,
+        userId,
+      },
+    });
+
+  if (!participant) {
+    throw new Error(
+      `Użytkownik ${userId} nie jest uczestnikiem alarmu ${alarmId}.`,
+    );
+  }
+
+  participant.status = status;
+
+  if (
+    status === AlarmParticipantStatus.GOING ||
+    status === AlarmParticipantStatus.NOT_GOING
+  ) {
+    participant.answeredAt = new Date();
+  } else {
+    participant.answeredAt = null;
+  }
+
+  return this.participantRepository.save(participant);
+}
+async findParticipants(alarmId: number) {
+  const participants =
+    await this.participantRepository.find({
+      where: {
+        alarmId,
+      },
+      order: {
+        id: 'ASC',
+      },
+    });
+
+  return Promise.all(
+    participants.map(async (participant) => {
+      const user = await this.usersService.findOne(
+        participant.userId,
+      );
+
+      return {
+        id: participant.id,
+        alarmId: participant.alarmId,
+        userId: participant.userId,
+
+        firstName: user?.firstName ?? null,
+        lastName: user?.lastName ?? null,
+        phone: user?.phone ?? null,
+
+        status: participant.status,
+        answeredAt: participant.answeredAt,
+        createdAt: participant.createdAt,
+        updatedAt: participant.updatedAt,
+      };
+    }),
+  );
+}
+async getSummary(alarmId: number) {
+  const participants =
+    await this.participantRepository.find({
+      where: { alarmId },
+    });
+
+  const summary = {
+    total: participants.length,
+    pending: 0,
+    going: 0,
+    notGoing: 0,
+    noAnswer: 0,
+  };
+
+  for (const participant of participants) {
+    switch (participant.status) {
+      case AlarmParticipantStatus.PENDING:
+        summary.pending++;
+        break;
+
+      case AlarmParticipantStatus.GOING:
+        summary.going++;
+        break;
+
+      case AlarmParticipantStatus.NOT_GOING:
+        summary.notGoing++;
+        break;
+
+      case AlarmParticipantStatus.NO_ANSWER:
+        summary.noAnswer++;
+        break;
+    }
+  }
+
+  return {
+    alarmId,
+    ...summary,
+  };
+}
 }
