@@ -33,6 +33,14 @@ export class AlarmsController {
     );
   }
 
+  @Patch(':alarmId/finish')
+finish(
+  @Param('alarmId') alarmId: string,
+) {
+  return this.alarmsService.finish(
+    Number(alarmId),
+  );
+}
   @Get()
   findAll() {
     return this.alarmsService.findAll();

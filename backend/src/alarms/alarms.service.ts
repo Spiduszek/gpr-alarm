@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -69,6 +73,25 @@ export class AlarmsService {
   userId: number,
   status: AlarmParticipantStatus,
 ): Promise<AlarmParticipant> {
+
+  const alarm = await this.alarmRepository.findOne({
+  where: {
+    id: alarmId,
+  },
+});
+
+if (!alarm) {
+  throw new NotFoundException(
+    `Alarm ${alarmId} nie istnieje.`,
+  );
+}
+
+if (alarm.status === AlarmStatus.FINISHED) {
+  throw new ConflictException(
+    `Alarm ${alarmId} jest zakończony. Nie można zmieniać odpowiedzi uczestników.`,
+  );
+}
+
   const participant =
     await this.participantRepository.findOne({
       where: {
@@ -78,10 +101,10 @@ export class AlarmsService {
     });
 
   if (!participant) {
-    throw new Error(
-      `Użytkownik ${userId} nie jest uczestnikiem alarmu ${alarmId}.`,
-    );
-  }
+  throw new NotFoundException(
+    `Użytkownik ${userId} nie jest uczestnikiem alarmu ${alarmId}.`,
+  );
+}
 
   participant.status = status;
 
@@ -168,5 +191,30 @@ async getSummary(alarmId: number) {
     alarmId,
     ...summary,
   };
+}
+
+async finish(alarmId: number): Promise<Alarm> {
+  const alarm = await this.alarmRepository.findOne({
+    where: {
+      id: alarmId,
+    },
+  });
+
+  if (!alarm) {
+    throw new NotFoundException(
+      `Alarm ${alarmId} nie istnieje.`,
+    );
+  }
+
+  if (alarm.status === AlarmStatus.FINISHED) {
+    throw new ConflictException(
+      `Alarm ${alarmId} został już zakończony.`,
+    );
+  }
+
+  alarm.status = AlarmStatus.FINISHED;
+  alarm.finishedAt = new Date();
+
+  return this.alarmRepository.save(alarm);
 }
 }
