@@ -46,6 +46,8 @@ export default function MainLayout() {
   const { logout } = useAuth();
   const [currentUser, setCurrentUser] =
   useState<CurrentUser | null>(null);
+  const [asteriskOnline, setAsteriskOnline] =
+  useState<boolean | null>(null);
 
 useEffect(() => {
   const loadCurrentUser = async () => {
@@ -65,6 +67,40 @@ useEffect(() => {
 
   loadCurrentUser();
 }, []);
+
+useEffect(() => {
+  if (currentUser?.role !== "ADMIN") {
+    setAsteriskOnline(null);
+    return;
+  }
+
+  const checkAsterisk = async () => {
+    try {
+      await api.get("/asterisk/ping");
+      setAsteriskOnline(true);
+    } catch (error) {
+      console.error(
+        "Nie udało się połączyć z Asterisk:",
+        error
+      );
+
+      setAsteriskOnline(false);
+    }
+  };
+
+  checkAsterisk();
+
+  const interval = window.setInterval(
+    checkAsterisk,
+    10000
+  );
+
+  return () => {
+    window.clearInterval(interval);
+  };
+}, [currentUser]);
+
+
 
  
 
@@ -212,38 +248,45 @@ useEffect(() => {
 
         <Divider sx={{ bgcolor: "#334155" }} />
 
-        <Box sx={{ p: 2 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 2 }}
-          >
-            Status usług
-          </Typography>
+        {currentUser?.role === "ADMIN" && (
+  <Box sx={{ p: 2 }}>
+    <Typography
+      variant="subtitle2"
+      sx={{ mb: 2 }}
+    >
+      Status usług
+    </Typography>
 
-          <Chip
-            label="API ONLINE"
-            color="success"
-            sx={{ mb: 1, width: "100%" }}
-          />
+    <Chip
+      label="API ONLINE"
+      color="success"
+      sx={{
+        mb: 1,
+        width: "100%",
+      }}
+    />
 
-          <Chip
-            label="PostgreSQL ONLINE"
-            color="success"
-            sx={{ mb: 1, width: "100%" }}
-          />
-
-          <Chip
-            label="Asterisk OFFLINE"
-            color="warning"
-            sx={{ mb: 1, width: "100%" }}
-          />
-
-          <Chip
-            label="WebSocket ONLINE"
-            color="success"
-            sx={{ width: "100%" }}
-          />
-        </Box>
+    <Chip
+      label={
+        asteriskOnline === null
+          ? "ASTERISK SPRAWDZANIE..."
+          : asteriskOnline
+            ? "ASTERISK ONLINE"
+            : "ASTERISK OFFLINE"
+      }
+      color={
+        asteriskOnline === null
+          ? "default"
+          : asteriskOnline
+            ? "success"
+            : "error"
+      }
+      sx={{
+        width: "100%",
+      }}
+    />
+  </Box>
+)}
       </Drawer>
 
       <Box

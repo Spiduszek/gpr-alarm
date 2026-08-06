@@ -12,10 +12,12 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 
 import { AsteriskService } from './asterisk.service';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @ApiTags('Asterisk')
 @ApiBearerAuth('access-token')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('asterisk')
 export class AsteriskController {
   constructor(
@@ -23,6 +25,7 @@ export class AsteriskController {
   ) {}
 
   @Get('ping')
+  @Roles('ADMIN')
   ping() {
     return this.asteriskService.ping();
   }

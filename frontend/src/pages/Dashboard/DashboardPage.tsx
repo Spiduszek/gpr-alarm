@@ -902,22 +902,9 @@ if (activeAlarm) {
         }}
       >
         <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Status systemu
-          </Typography>
+          
 
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{
-              flexWrap: "wrap",
-            }}
-          >
-            <Chip color="success" label="API" />
-            <Chip color="success" label="PostgreSQL" />
-            <Chip color="success" label="Asterisk" />
-            <Chip color="success" label="WebSocket" />
-          </Stack>
+          
 
           <Divider
             sx={{
