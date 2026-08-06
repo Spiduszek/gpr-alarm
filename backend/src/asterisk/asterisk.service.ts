@@ -228,13 +228,32 @@ export class AsteriskService {
     message: string;
   }> {
     const {
-      phone,
-      alarmId,
-      userId,
-    } = options;
+  phone,
+  alarmId,
+  userId,
+} = options;
 
-    
-    const trunk =
+// Normalizacja numeru dla HaloNet.
+// Usuwamy spacje, +, myślniki itd.
+let normalizedPhone = phone.replace(/\D/g, '');
+
+// HaloNet dla polskich numerów oczekuje 9 cyfr.
+// Jeżeli numer zaczyna się od 48 i ma 11 cyfr,
+// usuwamy prefiks kraju.
+if (
+  normalizedPhone.length === 11 &&
+  normalizedPhone.startsWith('48')
+) {
+  normalizedPhone = normalizedPhone.slice(2);
+}
+
+if (normalizedPhone.length !== 9) {
+  throw new InternalServerErrorException(
+    `Nieprawidłowy numer telefonu: ${phone}`,
+  );
+}
+
+const trunk =
       this.configService.get<string>(
         'ASTERISK_TRUNK',
       );
@@ -248,7 +267,7 @@ export class AsteriskService {
     await this.sendAction(
       [
         'Action: Originate',
-        `Channel: PJSIP/${phone}@${trunk}`,
+        `Channel: PJSIP/${normalizedPhone}@${trunk}`,
         'Context: gpr-alarm',
         'Exten: s',
         'Priority: 1',
