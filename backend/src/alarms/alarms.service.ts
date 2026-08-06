@@ -31,6 +31,17 @@ export class AlarmsService {
   ) {}
 
   async create(createdByUserId: number) {
+    const runningAlarm = await this.alarmRepository.findOne({
+  where: {
+    status: AlarmStatus.RUNNING,
+  },
+});
+
+if (runningAlarm) {
+  throw new ConflictException(
+    `Alarm ${runningAlarm.id} jest już aktywny.`,
+  );
+}
     // 1. Tworzymy alarm
     const alarm = this.alarmRepository.create({
       createdByUserId,
