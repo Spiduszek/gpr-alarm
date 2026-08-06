@@ -212,6 +212,56 @@ export class AsteriskService {
     };
   }
 
+  async originateTestCall(
+  phone: string,
+): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  let normalizedPhone = phone.replace(/\D/g, '');
+
+  if (
+    normalizedPhone.length === 11 &&
+    normalizedPhone.startsWith('48')
+  ) {
+    normalizedPhone = normalizedPhone.slice(2);
+  }
+
+  if (normalizedPhone.length !== 9) {
+    throw new InternalServerErrorException(
+      `Nieprawidłowy numer telefonu: ${phone}`,
+    );
+  }
+
+  const trunk =
+    this.configService.get<string>(
+      'ASTERISK_TRUNK',
+    );
+
+  if (!trunk) {
+    throw new InternalServerErrorException(
+      'Brak konfiguracji ASTERISK_TRUNK.',
+    );
+  }
+
+  await this.sendAction(
+    [
+      'Action: Originate',
+      `Channel: PJSIP/${normalizedPhone}@${trunk}`,
+      'Application: Playback',
+      'Data: pl/gpr-test',
+      'Async: true',
+    ],
+    'Response: Success',
+  );
+
+  return {
+    success: true,
+    message:
+      'Asterisk przyjął testowe połączenie.',
+  };
+}
+
   isCallingConfigured(): boolean {
   const trunk =
     this.configService.get<string>(

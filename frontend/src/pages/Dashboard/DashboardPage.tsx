@@ -86,6 +86,7 @@ type User = {
   const [currentUser, setCurrentUser] =
   useState<CurrentUser | null>(null);
   const [answering, setAnswering] = useState(false);
+  const [testCalling, setTestCalling] = useState(false);
   const [usersCount, setUsersCount] = useState(0);
   const [lastAlarm, setLastAlarm] = useState<Alarm | null>(null);
   const [lastAlarmSummary, setLastAlarmSummary] =
@@ -345,6 +346,31 @@ const handleMyAnswer = async (
     });
   } finally {
     setAnswering(false);
+  }
+};
+
+const handleTestCall = async () => {
+  try {
+    setTestCalling(true);
+
+    await api.post("/asterisk/test-call");
+
+    setMessage({
+      text: "Testowe połączenie zostało uruchomione. Telefon powinien za chwilę zadzwonić.",
+      severity: "success",
+    });
+  } catch (error) {
+    console.error(
+      "Nie udało się uruchomić testowego połączenia:",
+      error
+    );
+
+    setMessage({
+      text: "Nie udało się uruchomić testowego połączenia.",
+      severity: "error",
+    });
+  } finally {
+    setTestCalling(false);
   }
 };
 
@@ -957,20 +983,26 @@ if (activeAlarm) {
   </Button>
 )}
 
-      <Button
-        fullWidth
-        size="large"
-        variant="outlined"
-        startIcon={<PhoneIcon />}
-        sx={{
-          mt: 2,
-          height: 70,
-          fontSize: 22,
-          borderWidth: 2,
-        }}
-      >
-        Alarm testowy
-      </Button>
+      {isAdmin && (
+  <Button
+    fullWidth
+    size="large"
+    variant="outlined"
+    startIcon={<PhoneIcon />}
+    onClick={handleTestCall}
+    disabled={testCalling}
+    sx={{
+      mt: 2,
+      height: 70,
+      fontSize: 22,
+      borderWidth: 2,
+    }}
+  >
+    {testCalling
+      ? "URUCHAMIANIE TESTU..."
+      : "ALARM TESTOWY"}
+  </Button>
+)}
 
       <Card
         sx={{
