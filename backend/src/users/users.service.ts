@@ -60,6 +60,7 @@ export class UsersService {
     lastName?: string;
     phone?: string;
     password?: string;
+    role?: 'RATOWNIK' | 'ADMIN';
   },
 ): Promise<User | null> {
   const user = await this.findOne(id);
@@ -90,6 +91,10 @@ export class UsersService {
       10,
     );
   }
+
+  if (updateUserDto.role !== undefined) {
+  user.role = updateUserDto.role;
+}
 
   return this.usersRepository.save(user);
 }

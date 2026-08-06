@@ -13,6 +13,7 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  MenuItem,
   Stack,
   Typography,
 } from "@mui/material";
@@ -27,6 +28,7 @@ type User = {
   firstName: string;
   lastName: string;
   phone: string;
+  role: "RATOWNIK" | "ADMIN";
   active: boolean;
 };
 
@@ -46,6 +48,7 @@ type CreateUserForm = {
   phone: string;
   login: string;
   password: string;
+  role: "RATOWNIK" | "ADMIN";
 };
 
 export default function FirefightersPage() {
@@ -69,6 +72,7 @@ const [editForm, setEditForm] = useState<CreateUserForm>({
   phone: "",
   login: "",
   password: "",
+  role: "RATOWNIK",
 });
 
 const [form, setForm] = useState<CreateUserForm>({
@@ -77,6 +81,7 @@ const [form, setForm] = useState<CreateUserForm>({
   phone: "",
   login: "",
   password: "",
+  role: "RATOWNIK",
 });
 
   useEffect(() => {
@@ -124,6 +129,7 @@ useEffect(() => {
     phone: user.phone,
     login: user.login,
     password: "",
+    role: user.role,
   });
 
   setEditError("");
@@ -150,17 +156,19 @@ const handleUpdateUser = async () => {
     setEditError("");
 
     const data: {
-      firstName: string;
-      lastName: string;
-      phone: string;
-      login: string;
-      password?: string;
-    } = {
-      firstName: editForm.firstName.trim(),
-      lastName: editForm.lastName.trim(),
-      phone: editForm.phone.trim(),
-      login: editForm.login.trim(),
-    };
+  firstName: string;
+  lastName: string;
+  phone: string;
+  login: string;
+  password?: string;
+  role: "RATOWNIK" | "ADMIN";
+} = {
+  firstName: editForm.firstName.trim(),
+  lastName: editForm.lastName.trim(),
+  phone: editForm.phone.trim(),
+  login: editForm.login.trim(),
+  role: editForm.role,
+};
 
     // Hasło wysyłamy tylko wtedy, gdy administrator
     // faktycznie wpisał nowe.
@@ -229,6 +237,7 @@ const handleUpdateUser = async () => {
       phone: "",
       login: "",
       password: "",
+      role: "RATOWNIK",
     });
 
     setDialogOpen(false);
@@ -410,6 +419,24 @@ const isAdmin = currentUser?.role === "ADMIN";
     sx={{ fontWeight: 700 }}
   />
 
+  <Chip
+  label={
+    user.role === "ADMIN"
+      ? "ADMINISTRATOR"
+      : "RATOWNIK"
+  }
+  color={
+    user.role === "ADMIN"
+      ? "warning"
+      : "primary"
+  }
+  variant="outlined"
+  sx={{
+    fontWeight: 700,
+    minWidth: 120,
+  }}
+/>
+
   {isAdmin && (
     <>
       <Button
@@ -465,280 +492,320 @@ const isAdmin = currentUser?.role === "ADMIN";
         </Stack>
       )}
 
+            {/* ========================= */}
+      {/* DODAWANIE STRAŻAKA */}
+      {/* ========================= */}
+
       <Dialog
-  open={dialogOpen}
-  onClose={() => {
-    if (!saving) {
-      setDialogOpen(false);
-      setError("");
-    }
-  }}
-  fullWidth
-  maxWidth="sm"
->
-  <DialogTitle sx={{ fontWeight: 700 }}>
-    Dodaj strażaka
-  </DialogTitle>
-
-  <DialogContent>
-    <Stack spacing={2} sx={{ mt: 1 }}>
-      {error && (
-        <Alert severity="error">
-          {error}
-        </Alert>
-      )}
-
-      <TextField
-        label="Imię"
+        open={dialogOpen}
+        onClose={() => {
+          if (!saving) {
+            setDialogOpen(false);
+            setError("");
+          }
+        }}
         fullWidth
-        value={form.firstName}
-        onChange={(event) =>
-          setForm({
-            ...form,
-            firstName: event.target.value,
-          })
-        }
-      />
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Dodaj strażaka
+        </DialogTitle>
 
-      <TextField
-        label="Nazwisko"
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {error && (
+              <Alert severity="error">
+                {error}
+              </Alert>
+            )}
+
+            <TextField
+              label="Imię"
+              fullWidth
+              value={form.firstName}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  firstName: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Nazwisko"
+              fullWidth
+              value={form.lastName}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  lastName: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Numer telefonu"
+              fullWidth
+              value={form.phone}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  phone: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Login"
+              fullWidth
+              value={form.login}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  login: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Hasło"
+              type="password"
+              fullWidth
+              value={form.password}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  password: event.target.value,
+                })
+              }
+            />
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setDialogOpen(false);
+              setError("");
+            }}
+            disabled={saving}
+          >
+            ANULUJ
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleCreateUser}
+            disabled={saving}
+          >
+            {saving ? "DODAWANIE..." : "DODAJ STRAŻAKA"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ========================= */}
+      {/* EDYCJA STRAŻAKA */}
+      {/* ========================= */}
+
+      <Dialog
+        open={editOpen}
+        onClose={() => {
+          if (!editSaving) {
+            setEditOpen(false);
+            setEditingUser(null);
+            setEditError("");
+          }
+        }}
         fullWidth
-        value={form.lastName}
-        onChange={(event) =>
-          setForm({
-            ...form,
-            lastName: event.target.value,
-          })
-        }
-      />
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Edytuj strażaka
+        </DialogTitle>
 
-      <TextField
-        label="Numer telefonu"
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {editError && (
+              <Alert severity="error">
+                {editError}
+              </Alert>
+            )}
+
+            <TextField
+              label="Imię"
+              fullWidth
+              value={editForm.firstName}
+              onChange={(event) =>
+                setEditForm({
+                  ...editForm,
+                  firstName: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Nazwisko"
+              fullWidth
+              value={editForm.lastName}
+              onChange={(event) =>
+                setEditForm({
+                  ...editForm,
+                  lastName: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Numer telefonu"
+              fullWidth
+              value={editForm.phone}
+              onChange={(event) =>
+                setEditForm({
+                  ...editForm,
+                  phone: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Login"
+              fullWidth
+              value={editForm.login}
+              onChange={(event) =>
+                setEditForm({
+                  ...editForm,
+                  login: event.target.value,
+                })
+              }
+            />
+
+            <TextField
+              select
+              label="Rola"
+              fullWidth
+              value={editForm.role}
+              onChange={(event) =>
+                setEditForm({
+                  ...editForm,
+                  role: event.target.value as
+                    | "RATOWNIK"
+                    | "ADMIN",
+                })
+              }
+            >
+              <MenuItem value="RATOWNIK">
+                Ratownik
+              </MenuItem>
+
+              <MenuItem value="ADMIN">
+                Administrator
+              </MenuItem>
+            </TextField>
+
+            <TextField
+              label="Nowe hasło"
+              type="password"
+              fullWidth
+              value={editForm.password}
+              onChange={(event) =>
+                setEditForm({
+                  ...editForm,
+                  password: event.target.value,
+                })
+              }
+              helperText="Pozostaw puste, jeśli nie chcesz zmieniać hasła."
+            />
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setEditOpen(false);
+              setEditingUser(null);
+              setEditError("");
+            }}
+            disabled={editSaving}
+          >
+            ANULUJ
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleUpdateUser}
+            disabled={editSaving}
+          >
+            {editSaving
+              ? "ZAPISYWANIE..."
+              : "ZAPISZ ZMIANY"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ========================= */}
+      {/* USUWANIE STRAŻAKA */}
+      {/* ========================= */}
+
+      <Dialog
+        open={deleteOpen}
+        onClose={() => {
+          if (!deleting) {
+            setDeleteOpen(false);
+            setDeletingUser(null);
+          }
+        }}
         fullWidth
-        value={form.phone}
-        onChange={(event) =>
-          setForm({
-            ...form,
-            phone: event.target.value,
-          })
-        }
-      />
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Usuń strażaka
+        </DialogTitle>
 
-      <TextField
-        label="Login"
-        fullWidth
-        value={form.login}
-        onChange={(event) =>
-          setForm({
-            ...form,
-            login: event.target.value,
-          })
-        }
-      />
+        <DialogContent>
+          <Typography>
+            Czy na pewno chcesz trwale usunąć:
+          </Typography>
 
-      <TextField
-        label="Hasło"
-        type="password"
-        fullWidth
-        value={form.password}
-        onChange={(event) =>
-          setForm({
-            ...form,
-            password: event.target.value,
-          })
-        }
-      />
-    </Stack>
-  </DialogContent>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              mt: 2,
+              fontSize: 18,
+            }}
+          >
+            {deletingUser?.firstName}{" "}
+            {deletingUser?.lastName}
+          </Typography>
 
-  <DialogActions sx={{ p: 3 }}>
-    <Button
-      onClick={() => {
-        setDialogOpen(false);
-        setError("");
-      }}
-      disabled={saving}
-    >
-      Anuluj
-    </Button>
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Tej operacji nie można cofnąć. Historia
+            wcześniejszych alarmów zostanie zachowana.
+          </Alert>
+        </DialogContent>
 
-    <Button
-      variant="contained"
-      onClick={handleCreateUser}
-      disabled={saving}
-    >
-      {saving ? "Dodawanie..." : "DODAJ STRAŻAKA"}
-    </Button>
-  </DialogActions>
-</Dialog>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setDeleteOpen(false);
+              setDeletingUser(null);
+            }}
+            disabled={deleting}
+          >
+            ANULUJ
+          </Button>
 
-<Dialog
-  open={editOpen}
-  onClose={() => {
-    if (!editSaving) {
-      setEditOpen(false);
-      setEditingUser(null);
-      setEditError("");
-    }
-  }}
-  fullWidth
-  maxWidth="sm"
->
-  <DialogTitle sx={{ fontWeight: 700 }}>
-    Edytuj strażaka
-  </DialogTitle>
-
-  <DialogContent>
-    <Stack spacing={2} sx={{ mt: 1 }}>
-      {editError && (
-        <Alert severity="error">
-          {editError}
-        </Alert>
-      )}
-
-      <TextField
-        label="Imię"
-        fullWidth
-        value={editForm.firstName}
-        onChange={(event) =>
-          setEditForm({
-            ...editForm,
-            firstName: event.target.value,
-          })
-        }
-      />
-
-      <TextField
-        label="Nazwisko"
-        fullWidth
-        value={editForm.lastName}
-        onChange={(event) =>
-          setEditForm({
-            ...editForm,
-            lastName: event.target.value,
-          })
-        }
-      />
-
-      <TextField
-        label="Numer telefonu"
-        fullWidth
-        value={editForm.phone}
-        onChange={(event) =>
-          setEditForm({
-            ...editForm,
-            phone: event.target.value,
-          })
-        }
-      />
-
-      <TextField
-        label="Login"
-        fullWidth
-        value={editForm.login}
-        onChange={(event) =>
-          setEditForm({
-            ...editForm,
-            login: event.target.value,
-          })
-        }
-      />
-
-      <TextField
-        label="Nowe hasło"
-        type="password"
-        fullWidth
-        value={editForm.password}
-        onChange={(event) =>
-          setEditForm({
-            ...editForm,
-            password: event.target.value,
-          })
-        }
-        helperText="Pozostaw puste, jeśli nie chcesz zmieniać hasła."
-      />
-    </Stack>
-  </DialogContent>
-
-  <DialogActions sx={{ p: 3 }}>
-    <Button
-      onClick={() => {
-        setEditOpen(false);
-        setEditingUser(null);
-        setEditError("");
-      }}
-      disabled={editSaving}
-    >
-      Anuluj
-    </Button>
-
-    <Button
-      variant="contained"
-      onClick={handleUpdateUser}
-      disabled={editSaving}
-    >
-      {editSaving ? "Zapisywanie..." : "ZAPISZ ZMIANY"}
-    </Button>
-  </DialogActions>
-</Dialog>
-
-<Dialog
-  open={deleteOpen}
-  onClose={() => {
-    if (!deleting) {
-      setDeleteOpen(false);
-      setDeletingUser(null);
-    }
-  }}
-  fullWidth
-  maxWidth="xs"
->
-  <DialogTitle sx={{ fontWeight: 700 }}>
-    Usuń strażaka
-  </DialogTitle>
-
-  <DialogContent>
-    <Typography>
-      Czy na pewno chcesz trwale usunąć:
-    </Typography>
-
-    <Typography
-      sx={{
-        fontWeight: 700,
-        mt: 2,
-        fontSize: 18,
-      }}
-    >
-      {deletingUser?.firstName} {deletingUser?.lastName}
-    </Typography>
-
-    <Alert severity="warning" sx={{ mt: 2 }}>
-      Tej operacji nie można cofnąć. Historia
-      wcześniejszych alarmów zostanie zachowana.
-    </Alert>
-  </DialogContent>
-
-  <DialogActions sx={{ p: 3 }}>
-    <Button
-      onClick={() => {
-        setDeleteOpen(false);
-        setDeletingUser(null);
-      }}
-      disabled={deleting}
-    >
-      ANULUJ
-    </Button>
-
-   <Button
-  variant="contained"
-  color="error"
-  onClick={handleDeleteUser}
-  disabled={deleting}
->
-  {deleting ? "USUWANIE..." : "USUŃ TRWALE"}
-</Button>
-  </DialogActions>
-</Dialog>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteUser}
+            disabled={deleting}
+          >
+            {deleting
+              ? "USUWANIE..."
+              : "USUŃ TRWALE"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

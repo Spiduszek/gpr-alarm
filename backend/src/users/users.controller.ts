@@ -46,7 +46,18 @@ export class UsersController {
 async update(
   @Param('id', ParseIntPipe) id: number,
   @Body() updateUserDto: UpdateUserDto,
+  @Request() req: any,
 ) {
+
+  if (
+  id === req.user.id &&
+  updateUserDto.role &&
+  updateUserDto.role !== 'ADMIN'
+) {
+  throw new BadRequestException(
+    'Nie możesz odebrać sobie roli administratora.',
+  );
+}
   const user = await this.usersService.update(
     id,
     updateUserDto,

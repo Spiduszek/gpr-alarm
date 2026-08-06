@@ -25,4 +25,10 @@ export class UpdateUserDto {
     example: 'noweHaslo123',
   })
   password?: string;
+
+  @ApiPropertyOptional({
+  example: 'RATOWNIK',
+  enum: ['RATOWNIK', 'ADMIN'],
+})
+role?: 'RATOWNIK' | 'ADMIN';
 }
