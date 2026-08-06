@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 import {
@@ -26,16 +27,46 @@ import HistoryIcon from "@mui/icons-material/History";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import api from "../api/api";
+import { useAuth } from "../hooks/useAuth";
 
+type CurrentUser = {
+  id: number;
+  login: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: string;
+  active: boolean;
+};
 const drawerWidth = 260;
 
 export default function MainLayout() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [currentUser, setCurrentUser] =
+  useState<CurrentUser | null>(null);
 
-  function logout() {
-    localStorage.removeItem("token");
-    navigate("/", { replace: true });
-  }
+useEffect(() => {
+  const loadCurrentUser = async () => {
+    try {
+      const response = await api.get<CurrentUser>(
+        "/auth/me"
+      );
+
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error(
+        "Nie udało się pobrać zalogowanego użytkownika:",
+        error
+      );
+    }
+  };
+
+  loadCurrentUser();
+}, []);
+
+ 
 
   return (
     <Box sx={{ display: "flex", bgcolor: "#0f172a" }}>
@@ -63,20 +94,36 @@ export default function MainLayout() {
           </Typography>
 
           <Chip
-            label="Administrator"
-            color="error"
-            sx={{ mr: 2 }}
-          />
+  label={
+    currentUser?.role === "ADMIN"
+      ? "Administrator"
+      : "Ratownik"
+  }
+  color={
+    currentUser?.role === "ADMIN"
+      ? "error"
+      : "primary"
+  }
+  sx={{ mr: 2 }}
+/>
 
           <Avatar sx={{ bgcolor: "#dc2626", mr: 2 }}>
-            S
-          </Avatar>
+  {currentUser?.login
+    ? currentUser.login.charAt(0).toUpperCase()
+    : "?"}
+</Avatar>
 
           <Typography sx={{ color: "white", mr: 2 }}>
-            spidi
-          </Typography>
+  {currentUser?.login ?? "..."}
+</Typography>
 
-          <IconButton color="inherit" onClick={logout}>
+          <IconButton
+  color="inherit"
+  onClick={() => {
+    logout();
+    navigate("/", { replace: true });
+  }}
+>
             <LogoutIcon />
           </IconButton>
         </Toolbar>
@@ -99,12 +146,15 @@ export default function MainLayout() {
         <Toolbar />
 
         <List sx={{ mt: 2 }}>
-          <ListItemButton>
-            <ListItemIcon>
-              <DashboardIcon sx={{ color: "white" }} />
-            </ListItemIcon>
-            <ListItemText primary="Dashboard" />
-          </ListItemButton>
+          <ListItemButton
+  onClick={() => navigate("/dashboard")}
+>
+  <ListItemIcon>
+    <DashboardIcon sx={{ color: "white" }} />
+  </ListItemIcon>
+
+  <ListItemText primary="Dashboard" />
+</ListItemButton>
 
           <ListItemButton>
             <ListItemIcon>
@@ -120,11 +170,13 @@ export default function MainLayout() {
             <ListItemText primary="Jednostki" />
           </ListItemButton>
 
-          <ListItemButton>
-            <ListItemIcon>
-              <GroupsIcon sx={{ color: "#60a5fa" }} />
-            </ListItemIcon>
-            <ListItemText primary="Strażacy" />
+          <ListItemButton
+              onClick={() => navigate("/firefighters")}
+>
+          <ListItemIcon>
+          <GroupsIcon sx={{ color: "#60a5fa" }} />
+          </ListItemIcon>
+          <ListItemText primary="Strażacy" />
           </ListItemButton>
 
           <ListItemButton>

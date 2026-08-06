@@ -25,6 +25,24 @@ export class AlarmParticipant {
   userId!: number;
 
   @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  firstName!: string | null;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  lastName!: string | null;
+
+  @Column({
+    type: 'varchar',
+    nullable: true,
+  })
+  phone!: string | null;
+
+  @Column({
     type: 'enum',
     enum: AlarmParticipantStatus,
     default: AlarmParticipantStatus.PENDING,

@@ -52,4 +52,72 @@ export class UsersService {
       },
     });
   }
+  async update(
+  id: number,
+  updateUserDto: {
+    login?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    password?: string;
+  },
+): Promise<User | null> {
+  const user = await this.findOne(id);
+
+  if (!user) {
+    return null;
+  }
+
+  if (updateUserDto.login !== undefined) {
+    user.login = updateUserDto.login;
+  }
+
+  if (updateUserDto.firstName !== undefined) {
+    user.firstName = updateUserDto.firstName;
+  }
+
+  if (updateUserDto.lastName !== undefined) {
+    user.lastName = updateUserDto.lastName;
+  }
+
+  if (updateUserDto.phone !== undefined) {
+    user.phone = updateUserDto.phone;
+  }
+
+  if (updateUserDto.password) {
+    user.password = await bcrypt.hash(
+      updateUserDto.password,
+      10,
+    );
+  }
+
+  return this.usersRepository.save(user);
+}
+
+async setActive(
+  id: number,
+  active: boolean,
+): Promise<User | null> {
+  const user = await this.findOne(id);
+
+  if (!user) {
+    return null;
+  }
+
+  user.active = active;
+
+  return this.usersRepository.save(user);
+}
+
+async remove(id: number): Promise<boolean> {
+  const user = await this.findOne(id);
+
+  if (!user) {
+    return false;
+  }
+
+  await this.usersRepository.remove(user);
+
+  return true;
+}
 }

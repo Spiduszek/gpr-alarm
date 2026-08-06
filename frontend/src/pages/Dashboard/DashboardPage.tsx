@@ -51,6 +51,24 @@ type Participant = {
   status: "PENDING" | "GOING" | "NOT_GOING" | "NO_ANSWER";
   answeredAt: string | null;
 };
+
+type CurrentUser = {
+  id: number;
+  login: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role: string;
+  active: boolean;
+};
+
+type User = {
+  id: number;
+  phone: string;
+  active: boolean;
+};
+
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
@@ -65,6 +83,94 @@ type Participant = {
   const [checkingAlarm, setCheckingAlarm] = useState(true);
   const [summary, setSummary] = useState<AlarmSummary | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [currentUser, setCurrentUser] =
+  useState<CurrentUser | null>(null);
+  const [answering, setAnswering] = useState(false);
+  const [usersCount, setUsersCount] = useState(0);
+  const [lastAlarm, setLastAlarm] = useState<Alarm | null>(null);
+  const [lastAlarmSummary, setLastAlarmSummary] =
+  useState<AlarmSummary | null>(null);
+
+  useEffect(() => {
+  const loadCurrentUser = async () => {
+    try {
+      const response = await api.get<CurrentUser>(
+        "/auth/me"
+      );
+
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error(
+        "Nie udało się pobrać zalogowanego użytkownika:",
+        error
+      );
+    }
+  };
+
+  loadCurrentUser();
+}, []);
+
+useEffect(() => {
+  const loadUsersCount = async () => {
+    try {
+      const response = await api.get<User[]>("/users");
+
+      const usersWithPhone = response.data.filter(
+        (user) => user.phone?.trim()
+      );
+
+      setUsersCount(usersWithPhone.length);
+    } catch (error) {
+      console.error(
+        "Nie udało się pobrać liczby telefonów:",
+        error
+      );
+    }
+  };
+
+  loadUsersCount();
+}, []);
+
+useEffect(() => {
+  const loadLastAlarm = async () => {
+    try {
+      const alarmsResponse =
+        await api.get<Alarm[]>("/alarms");
+
+      const finishedAlarms = alarmsResponse.data
+        .filter((alarm) => alarm.status === "FINISHED")
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime()
+        );
+
+      const latestFinishedAlarm = finishedAlarms[0];
+
+      if (!latestFinishedAlarm) {
+        setLastAlarm(null);
+        setLastAlarmSummary(null);
+        return;
+      }
+
+      setLastAlarm(latestFinishedAlarm);
+
+      const summaryResponse =
+        await api.get<AlarmSummary>(
+          `/alarms/${latestFinishedAlarm.id}/summary`
+        );
+
+      setLastAlarmSummary(summaryResponse.data);
+    } catch (error) {
+      console.error(
+        "Nie udało się pobrać ostatniego alarmu:",
+        error
+      );
+    }
+  };
+
+  loadLastAlarm();
+}, []);
 
   useEffect(() => {
   const loadActiveAlarm = async () => {
@@ -195,6 +301,62 @@ useEffect(() => {
   }
 };
 
+const handleMyAnswer = async (
+  status: "GOING" | "NOT_GOING"
+) => {
+  if (!activeAlarm || !currentUser) {
+    return;
+  }
+
+  try {
+    setAnswering(true);
+
+    const response = await api.patch<Participant>(
+      `/alarms/${activeAlarm.id}/participants/${currentUser.id}/status`,
+      {
+        status,
+      }
+    );
+
+    setParticipants((currentParticipants) =>
+      currentParticipants.map((participant) =>
+        participant.userId === currentUser.id
+          ? response.data
+          : participant
+      )
+    );
+
+    setMessage({
+      text:
+        status === "GOING"
+          ? "Potwierdziłeś udział w alarmie."
+          : "Odrzuciłeś udział w alarmie.",
+      severity: "success",
+    });
+  } catch (error) {
+    console.error(
+      "Nie udało się zapisać odpowiedzi:",
+      error
+    );
+
+    setMessage({
+      text: "Nie udało się zapisać odpowiedzi.",
+      severity: "error",
+    });
+  } finally {
+    setAnswering(false);
+  }
+};
+
+const isAdmin = currentUser?.role === "ADMIN";
+
+const myParticipant = participants.find(
+  (participant) =>
+    participant.userId === currentUser?.id
+);
+
+const myStatus = myParticipant?.status;
+
 if (checkingAlarm) {
   return (
     <Box
@@ -282,7 +444,125 @@ if (activeAlarm) {
           </Typography>
         </CardContent>
       </Card>
+            
+{!isAdmin && currentUser && (
+  <Card
+    sx={{
+      mt: 3,
+      bgcolor: "#1e293b",
+      color: "white",
+      borderRadius: 4,
+    }}
+  >
+    <CardContent>
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 800,
+          textAlign: "center",
+          mb: 1,
+        }}
+      >
+        TWOJA ODPOWIEDŹ
+      </Typography>
 
+      <Typography
+        sx={{
+          color: "#94a3b8",
+          textAlign: "center",
+          mb: 3,
+        }}
+      >
+        Czy jedziesz na alarm?
+      </Typography>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "1fr 1fr",
+          },
+          gap: 2,
+        }}
+      >
+        <Button
+          variant="contained"
+          color="success"
+          disabled={answering}
+          onClick={() => handleMyAnswer("GOING")}
+          sx={{
+            height: 90,
+            fontSize: 24,
+            fontWeight: 800,
+            borderRadius: 3,
+          }}
+        >
+          JADĘ
+        </Button>
+
+        <Button
+          variant="contained"
+          color="error"
+          disabled={answering}
+          onClick={() =>
+            handleMyAnswer("NOT_GOING")
+          }
+          sx={{
+            height: 90,
+            fontSize: 24,
+            fontWeight: 800,
+            borderRadius: 3,
+          }}
+        >
+          NIE JADĘ
+        </Button>
+      </Box>
+
+      <Box
+        sx={{
+          mt: 3,
+          textAlign: "center",
+        }}
+      >
+        <Typography
+          sx={{
+            color: "#94a3b8",
+            mb: 1,
+          }}
+        >
+          Aktualna odpowiedź:
+        </Typography>
+
+        <Chip
+          label={
+            myStatus === "GOING"
+              ? "JADĘ"
+              : myStatus === "NOT_GOING"
+              ? "NIE JADĘ"
+              : myStatus === "NO_ANSWER"
+              ? "BRAK ODPOWIEDZI"
+              : "OCZEKUJE"
+          }
+          color={
+            myStatus === "GOING"
+              ? "success"
+              : myStatus === "NOT_GOING"
+              ? "error"
+              : myStatus === "NO_ANSWER"
+              ? "default"
+              : "warning"
+          }
+          sx={{
+            fontWeight: 800,
+            fontSize: 16,
+          }}
+        />
+      </Box>
+    </CardContent>
+  </Card>
+)}
+            
       {/* PODSUMOWANIE */}
 
 {/* PODSUMOWANIE */}
@@ -434,24 +714,26 @@ if (activeAlarm) {
 </Card>
 
 {/* LISTA RATOWNIKÓW */}
-<Button
-  fullWidth
-  size="large"
-  variant="contained"
-  color="error"
-  startIcon={<WarningAmberIcon />}
-  onClick={() => setFinishConfirmOpen(true)}
-  sx={{
-    mt: 3,
-    mb: 3,
-    height: 80,
-    fontSize: 22,
-    fontWeight: 800,
-    borderRadius: 3,
-  }}
->
-  ZAKOŃCZ ALARM
-</Button>
+{isAdmin && (
+  <Button
+    fullWidth
+    size="large"
+    variant="contained"
+    color="error"
+    startIcon={<WarningAmberIcon />}
+    onClick={() => setFinishConfirmOpen(true)}
+    sx={{
+      mt: 3,
+      mb: 3,
+      height: 80,
+      fontSize: 22,
+      fontWeight: 800,
+      borderRadius: 3,
+    }}
+  >
+    ZAKOŃCZ ALARM
+  </Button>
+)}
 
 <Dialog
   open={finishConfirmOpen}
@@ -660,31 +942,33 @@ if (activeAlarm) {
               fontWeight: 700,
             }}
           >
-            22
+            {usersCount}
           </Typography>
         </CardContent>
       </Card>
 
-      <Button
-        fullWidth
-        size="large"
-        variant="contained"
-        startIcon={<WarningAmberIcon />}
-        onClick={() => setConfirmOpen(true)}
-        sx={{
-          mt: 5,
-          height: 120,
-          fontSize: 32,
-          fontWeight: 700,
-          bgcolor: "#dc2626",
+      {isAdmin && (
+  <Button
+    fullWidth
+    size="large"
+    variant="contained"
+    startIcon={<WarningAmberIcon />}
+    onClick={() => setConfirmOpen(true)}
+    sx={{
+      mt: 5,
+      height: 120,
+      fontSize: 32,
+      fontWeight: 700,
+      bgcolor: "#dc2626",
 
-          "&:hover": {
-            bgcolor: "#b91c1c",
-          },
-        }}
-      >
-        ALARMUJ CAŁĄ GRUPĘ
-      </Button>
+      "&:hover": {
+        bgcolor: "#b91c1c",
+      },
+    }}
+  >
+    ALARMUJ CAŁĄ GRUPĘ
+  </Button>
+)}
 
       <Button
         fullWidth
@@ -714,13 +998,25 @@ if (activeAlarm) {
             Ostatnie alarmowanie
           </Typography>
 
-          <Typography>
-            10.07.2026 22:41
-          </Typography>
+          {lastAlarm && lastAlarmSummary ? (
+            <>
+              <Typography>
+                {new Date(lastAlarm.createdAt).toLocaleString(
+                  "pl-PL"
+                )}
+              </Typography>
 
-          <Typography color="gray">
-            Potwierdziło udział: 18 / 22
-          </Typography>
+              <Typography color="gray">
+                Potwierdziło udział: {" "}
+                {lastAlarmSummary.going} / {" "}
+                {lastAlarmSummary.total}
+              </Typography>
+            </>
+          ) : (
+            <Typography color="gray">
+              Brak zakończonych alarmów.
+            </Typography>
+          )}
         </CardContent>
       </Card>
 

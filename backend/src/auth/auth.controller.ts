@@ -32,7 +32,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   me(@Request() req: any) {
     return this.authService.me(req.user.id);
@@ -48,7 +48,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   async logout(@Request() req: any) {
     await this.authService.logout(

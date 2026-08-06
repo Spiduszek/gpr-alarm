@@ -5,9 +5,11 @@ import { Alarm } from './entities/alarm.entity';
 import { AlarmParticipant } from './entities/alarm-participant.entity';
 
 import { AlarmsController } from './alarms.controller';
+import { AsteriskCallbackController } from './asterisk-callback.controller';
 import { AlarmsService } from './alarms.service';
 
 import { UsersModule } from '../users/users.module';
+import { AsteriskModule } from '../asterisk/asterisk.module';
 
 @Module({
   imports: [
@@ -16,11 +18,13 @@ import { UsersModule } from '../users/users.module';
       AlarmParticipant,
     ]),
     UsersModule,
+    AsteriskModule,
   ],
 
   controllers: [
-    AlarmsController,
-  ],
+  AlarmsController,
+  AsteriskCallbackController,
+],
 
   providers: [
     AlarmsService,

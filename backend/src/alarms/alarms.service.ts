@@ -18,6 +18,8 @@ import {
 
 import { UsersService } from '../users/users.service';
 
+import { AsteriskService } from '../asterisk/asterisk.service';
+
 @Injectable()
 export class AlarmsService {
   constructor(
@@ -28,6 +30,8 @@ export class AlarmsService {
     private readonly participantRepository: Repository<AlarmParticipant>,
 
     private readonly usersService: UsersService,
+
+    private readonly asteriskService: AsteriskService,
   ) {}
 
   async create(createdByUserId: number) {
@@ -54,22 +58,75 @@ if (runningAlarm) {
     const users = await this.usersService.findAllActive();
 
     // 3. Tworzymy uczestnika alarmu dla każdego użytkownika
-    const participants = users.map((user) =>
-      this.participantRepository.create({
-        alarmId: savedAlarm.id,
-        userId: user.id,
-        status: AlarmParticipantStatus.PENDING,
-      }),
-    );
+  const participants = users.map((user) =>
+  this.participantRepository.create({
+    alarmId: savedAlarm.id,
+    userId: user.id,
+
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+
+    status: AlarmParticipantStatus.PENDING,
+  }),
+);
 
     // 4. Zapisujemy wszystkich uczestników
-    await this.participantRepository.save(participants);
+const savedParticipants =
+  await this.participantRepository.save(
+    participants,
+  );
 
-    // 5. Zwracamy alarm razem z liczbą osób do alarmowania
-    return {
-      ...savedAlarm,
-      participantsCount: participants.length,
-    };
+// 5. Jeżeli telefonia jest skonfigurowana,
+// zlecamy Asteriskowi połączenia.
+const calls = savedParticipants
+  .filter(
+    (
+      participant,
+    ): participant is typeof participant & {
+      phone: string;
+    } => Boolean(participant.phone?.trim()),
+  )
+  .map((participant) => ({
+    phone: participant.phone,
+    alarmId: savedAlarm.id,
+    userId: participant.userId,
+  }));
+
+const withoutPhone =
+  savedParticipants.length - calls.length;
+
+if (withoutPhone > 0) {
+  console.warn(
+    `Alarm ${savedAlarm.id}: ${withoutPhone} uczestników nie ma numeru telefonu.`,
+  );
+}
+
+if (this.asteriskService.isCallingConfigured()) {
+  void this.asteriskService
+    .originateCallsInBatches(
+      calls,
+      5,
+      2000,
+    )
+    .catch((error) => {
+      console.error(
+        `Alarm ${savedAlarm.id}: błąd podczas uruchamiania serii połączeń:`,
+        error,
+      );
+    });
+} else {
+  console.log(
+    `Alarm ${savedAlarm.id}: telefonia nie jest jeszcze skonfigurowana — pomijam wykonywanie połączeń.`,
+  );
+}
+
+// 6. Zwracamy alarm od razu.
+// Nie czekamy na zakończenie rozmów.
+return {
+  ...savedAlarm,
+  participantsCount: savedParticipants.length,
+};
   }
 
   async findAll(): Promise<Alarm[]> {
@@ -141,28 +198,20 @@ async findParticipants(alarmId: number) {
       },
     });
 
-  return Promise.all(
-    participants.map(async (participant) => {
-      const user = await this.usersService.findOne(
-        participant.userId,
-      );
+  return participants.map((participant) => ({
+    id: participant.id,
+    alarmId: participant.alarmId,
+    userId: participant.userId,
 
-      return {
-        id: participant.id,
-        alarmId: participant.alarmId,
-        userId: participant.userId,
+    firstName: participant.firstName,
+    lastName: participant.lastName,
+    phone: participant.phone,
 
-        firstName: user?.firstName ?? null,
-        lastName: user?.lastName ?? null,
-        phone: user?.phone ?? null,
-
-        status: participant.status,
-        answeredAt: participant.answeredAt,
-        createdAt: participant.createdAt,
-        updatedAt: participant.updatedAt,
-      };
-    }),
-  );
+    status: participant.status,
+    answeredAt: participant.answeredAt,
+    createdAt: participant.createdAt,
+    updatedAt: participant.updatedAt,
+  }));
 }
 async getSummary(alarmId: number) {
   const participants =
